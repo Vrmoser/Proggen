@@ -50,7 +50,7 @@ public class ScrabbleGame {
         }
     }
 
- 
+
 
     public List<String> getWords() {
         return words;
@@ -84,9 +84,6 @@ public class ScrabbleGame {
 
         for (int i = 0; i < getWords().size(); i++) {
             if (whichWordWhichPlayer(i) == 2) {
-                // if (getWords().get(i).length() < 1) {
-                //     return 0;
-                // }
                 scorePlayerTwo = scorePlayerTwo + Integer.parseInt(postfixFunction(getWords().get(i)).get(0));
             }
         }
@@ -145,24 +142,18 @@ public class ScrabbleGame {
     }
 
     private void placeToken(String userInput, String currentPlayer) {
-        //fillWords(userInput);
         if (ex.getDirection(userInput).matches("H")) {
             sf.tokenPlacerH(userInput, currentPlayer);
-            //takeTokensOutOfBag(userInput, currentPlayer);
         } else if (ex.getDirection(userInput).matches("V")) {
             sf.tokenPlacerV(userInput, currentPlayer);
-            //takeTokensOutOfBag(userInput, currentPlayer);
         }
     }
 
     private void removeWrongTokenFromField(String userInput, String currentPlayer) {
-        // fillWords(userInput);
         if (ex.getDirection(userInput).matches("H")) {
             sf.tokenRemoverH(userInput);
-            //takeTokensOutOfBag(userInput, currentPlayer);
         } else if (ex.getDirection(userInput).matches("V")) {
             sf.tokenRemoverV(userInput);
-            //takeTokensOutOfBag(userInput, currentPlayer);
         }
     }
 
@@ -171,14 +162,12 @@ public class ScrabbleGame {
             if (sf.validMoveCheck(userInput)) {
                 if (sf.directionCheck(userInput)) {
                     placeToken(userInput, currentPlayer);
-                    // if (areSurroundingWordsAlsoValidPostFixExpressions(userInput)) {
                     if (allWordsEachTurn()) {
                         setPlayerCounter();
                         takeTokensOutOfBag(userInput, currentPlayer);
                         System.out.println("OK");
                     } else {
                         er.noPostFix();
-                        //removeWrongWord();
                         removeWrongTokenFromField(userInput, currentPlayer);
                     }
                 }
@@ -188,11 +177,6 @@ public class ScrabbleGame {
         } else {
             er.wrongTokens();
         }
-    }
-
-    private void removeWrongWord() {
-        words.remove(words.size() - 1);
-        wordsCoordinate.remove(wordsCoordinate.size() - 1);
     }
 
     private void setPlayerCounter() {
@@ -247,7 +231,6 @@ public class ScrabbleGame {
 
     private boolean allWordsEachTurn() {
         int tokenCounter = 0;
-        int emptyCounter = 0;
         int rowCounter = 0;
         int columnCounter = 0;
         List<String> words = new LinkedList<>();
@@ -262,7 +245,6 @@ public class ScrabbleGame {
                 sb = new StringBuilder();
                 tokenCounter = 0;
                 while ((sf.getField()[rowCounter][columnCounter].matches(" "))) {
-                    emptyCounter++;
                     if (columnCounter < sf.getField().length - 1) {
                         columnCounter++;
                     } else break;
@@ -295,7 +277,6 @@ public class ScrabbleGame {
                 sb = new StringBuilder();
                 tokenCounter = 0;
                 while ((sf.getField()[rowCounter][columnCounter].matches(" "))) {
-                    emptyCounter++;
                     if (rowCounter < sf.getField().length - 1) {
                         rowCounter++;
                     } else break;
