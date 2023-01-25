@@ -1,0 +1,354 @@
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
+
+public class ScrabbleGame {
+    ScrabbleField sf = new ScrabbleField();
+    Regex rg = new Regex();
+    Extractor ex = new Extractor();
+    Bag b1 = new Bag();
+    Bag b2 = new Bag();
+    Error er = new Error();
+
+
+    private List<String> words = new LinkedList<>();
+    private List<String> wordsCoordinate = new LinkedList<>();
+    private StringBuilder sb = new StringBuilder();
+    private int gameCounter;
+    private int tokenCount;
+
+    private List<Integer> postfixFunction(String expression) {
+        List<Integer> stack = new LinkedList<Integer>();
+        for (int i = 0; i < expression.length(); i++) {
+            if (isNumber(expression.substring(i, i + 1))) {
+                stack.add(Integer.parseInt(expression.substring(i, i + 1)));
+            } else if (isOperator(expression.substring(i, i + 1))) {
+                int cacheOne = stack.remove(stack.size() - 1);
+                int cacheTwo = stack.remove(stack.size() - 1);
+                int result = calculate(cacheTwo, cacheOne, expression.substring(i, i + 1));
+                stack.add(result);
+            }
+        }
+        return stack;
+    }
+
+    public StringBuilder getSb() {
+        return sb;
+    }
+
+    public void setSb(StringBuilder sb) {
+        this.sb = sb;
+    }
+
+    public int getTokenCount() {
+        return tokenCount;
+    }
+
+    public void setTokenCount(int tokenCount) {
+        this.tokenCount = tokenCount;
+    }
+
+    private boolean isNumber(String c) {
+        return c.matches(rg.getRegexNumber());
+    }
+
+    private boolean isOperator(String c) {
+        return c.matches(rg.getRegexOperator());
+    }
+
+    private int calculate(int cacheOne, int cacheTwo, String operator) {
+        if (operator.matches("[+]")) {
+            return cacheOne + cacheTwo;
+        } else if (operator.matches("[-]")) {
+            return cacheOne - cacheTwo;
+        } else {
+            return cacheOne * cacheTwo;
+        }
+    }
+
+
+    public List<String> getWords() {
+        return words;
+    }
+
+
+    public List<String> getWordsCoordinate() {
+        return wordsCoordinate;
+    }
+
+    public void setWords(List<String> words) {
+        this.words = words;
+    }
+
+    public void setWordsCoordinate(List<String> wordsCoordinate) {
+        this.wordsCoordinate = wordsCoordinate;
+    }
+
+    private int calculateScore(int playerID) {
+        int scorePlayer = 0;
+
+        for (int i = 0; i < getWords().size(); i++) {
+            if (whichWordWhichPlayer(i) == playerID) {
+                scorePlayer = scorePlayer + postfixFunction(getWords().get(i)).get(0);
+            }
+        }
+        return scorePlayer;
+    }
+
+    private void scoreOut(int playerID) {
+        System.out.println(calculateScore(playerID));
+    }
+
+    public void score(String userInput) {
+        if (ex.getBagScorePlayer(userInput).matches(rg.getRegexPlayer())) {
+            scoreOut(Integer.parseInt(ex.getBagScorePlayer(userInput).substring(1)));
+        } else {
+            er.noValidPlayer();
+        }
+    }
+
+    public void printField() {
+        sf.printField();
+    }
+
+    public void printBag(String userInput) {
+        if (ex.getBagScorePlayer(userInput).matches(rg.getRegexPlayerOne())) {
+            b1.printBag();
+        } else if (ex.getBagScorePlayer(userInput).matches(rg.getRegexPlayerTwo())) {
+            b2.printBag();
+        } else {
+            er.noValidPlayer();
+        }
+    }
+
+    private boolean checkForTokenInBag(String userInput, String currentPlayer) {
+        if (currentPlayer.matches(rg.getRegexPlayerOne()) && b1.tokensMinusBag(userInput)) {
+            return b1.lookForToken(userInput);
+        }
+        if (currentPlayer.matches(rg.getRegexPlayerTwo()) && b2.tokensMinusBag(userInput)) {
+            return b2.lookForToken(userInput);
+        }
+        return false;
+    }
+
+    private void takeTokensOutOfBag(String userInput, String currentPlayer) {
+        if (currentPlayer.matches(rg.getRegexPlayerOne())) {
+            b1.removeUsedTokensBag(userInput);
+        }
+        if (currentPlayer.matches(rg.getRegexPlayerTwo())) {
+            b2.removeUsedTokensBag(userInput);
+        }
+    }
+
+    private void placeToken(String userInput, String currentPlayer) {
+        if (ex.getDirection(userInput).matches("H")) {
+            sf.tokenPlacerH(userInput, currentPlayer);
+        } else if (ex.getDirection(userInput).matches("V")) {
+            sf.tokenPlacerV(userInput, currentPlayer);
+        }
+    }
+
+    private void removeWrongTokenFromField(String userInput, String currentPlayer) {
+        if (ex.getDirection(userInput).matches("H")) {
+            sf.tokenRemoverH(userInput);
+        } else if (ex.getDirection(userInput).matches("V")) {
+            sf.tokenRemoverV(userInput);
+        }
+    }
+
+
+    public void place(String userInput, String currentPlayer) {
+        placeConditionTokenValidMove(userInput, currentPlayer);
+    }
+
+    private void placeConditionTokenValidMove(String userInput, String currentPlayer) {
+        if (checkForTokenInBag(userInput, currentPlayer)) {
+            if (sf.validMoveCheck(userInput)) {
+                if (sf.directionCheck(userInput)) {
+                    placer(userInput, currentPlayer);
+                }
+            } else {
+                er.isolatedMove();
+            }
+        } else {
+            er.wrongTokens();
+        }
+    }
+
+    private void placer(String userInput, String currentPlayer) {
+        placeToken(userInput, currentPlayer);
+        if (allWordsEachTurn()) {
+            setPlayerCounter();
+            takeTokensOutOfBag(userInput, currentPlayer);
+            System.out.println("OK");
+        } else {
+            er.noPostFix();
+            removeWrongTokenFromField(userInput, currentPlayer);
+        }
+    }
+
+    private void setPlayerCounter() {
+        this.gameCounter = gameCounter + 1;
+    }
+
+    public int getGameCounter() {
+        return gameCounter;
+    }
+
+    public void initialize(String startInputOne, String startInputTwo) {
+        sf.setField();
+        b1.fillBagTokens(startInputOne);
+        b2.fillBagTokens(startInputTwo);
+    }
+
+    private int whichWordWhichPlayer(int j) {
+        int playerOneCount = 0;
+        int playerTwoCount = 0;
+        for (int i = 0; i < getWords().get(j).length(); i++) {
+            if (Objects.equals(ex.getWordCoordinateDirection(getWordsCoordinate().get(j)), "H")) {
+                if (didThisPlayerPlaceThisToken(j, 0, 1, 1)) {
+                    playerOneCount++;
+                } else if (didThisPlayerPlaceThisToken(j, 0, 1, 2)) {
+                    playerTwoCount++;
+                }
+            } else if (Objects.equals(ex.getWordCoordinateDirection(getWordsCoordinate().get(j)), "V")) {
+                if (didThisPlayerPlaceThisToken(j, 1, 0, 1)) {
+                    playerOneCount++;
+                } else if (didThisPlayerPlaceThisToken(j, 1, 0, 2)) {
+                    playerTwoCount++;
+                }
+            }
+        }
+        if (playerTwoCount < playerOneCount) {
+            return 1;
+        } else if (playerOneCount < playerTwoCount) {
+            return 2;
+        }
+        return 0;
+    }
+
+    private boolean didThisPlayerPlaceThisToken(int wordID, int addRow, int addColumn, int playerID) {
+        return sf.getPlayerIDtoCoordinate(
+                Integer.parseInt(ex.getWordCoordinateRow(getWordsCoordinate().get(wordID))) + addRow,
+                Integer.parseInt(ex.getWordCoordinateColumn(getWordsCoordinate().get(wordID))) + addColumn) == playerID;
+    }
+
+    private boolean allWordsEachTurn() {
+        List<String> words = new LinkedList<>();
+        List<String> wordsCoordinate = new LinkedList<>();
+
+        if (lookForAllWordsInDirection(words, wordsCoordinate, "Row")) return false;
+        if (lookForAllWordsInDirection(words, wordsCoordinate, "Column")) return false;
+
+        setWords(words);
+        setWordsCoordinate(wordsCoordinate);
+        return true;
+    }
+
+    private boolean lookForAllWordsInDirection(List<String> words, List<String> wordsCoordinate, String rowOrColumn) {
+        String direction;
+        int tokenPlusRow = 0;
+        int tokenPlusColumn = 0;
+        int columnCounter;
+        int rowCounter;
+        int count;
+        int iterator;
+        for (count = 0; count < sf.getField().length; count++) {
+            iterator = 0;
+            while (iterator < sf.getField().length - 1) {
+                setSb(null);
+                setTokenCount(0);
+                if (rowOrColumn.matches("Row")) {
+                    rowCounter = count;
+                    columnCounter = iterator;
+                } else {
+                    columnCounter = count;
+                    rowCounter = iterator;
+                }
+                iterator = iteration(" ", rowCounter, columnCounter, iterator, rowOrColumn);
+                iterator = iteration(rg.getRegexToken(), rowCounter, columnCounter, iterator, rowOrColumn);
+                if (!(postfixFunctionBoolean(getSb().toString()))) {
+                    return true;
+                } else {
+                    if (getSb().toString().length() > 2) {
+                        words.add(getSb().toString());
+                        if (rowOrColumn.matches("Row")) {
+                            tokenPlusColumn = getTokenCount();
+                            direction = "H";
+                        } else {
+                            tokenPlusRow = getTokenCount();
+                            direction = "V";
+                        }
+                        wordsCoordinate.add(Integer.toString(rowCounter - tokenPlusRow) +
+                                Integer.toString(columnCounter - tokenPlusColumn) + direction);
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private int iteration(String matcher, int rowCounter, int columnCounter, int iterator, String rowOrColumn) {
+        sb = new StringBuilder();
+        while ((sf.getField()[rowCounter][columnCounter].matches(matcher))) {
+            if (!(matcher.equals(" "))) {
+                sb.append(sf.getField()[rowCounter][columnCounter]);
+                setTokenCount(tokenCount++);
+            }
+            if (iterator < sf.getField().length - 1) {
+                iterator++;
+                if (rowOrColumn.matches("Row")) {
+                    columnCounter = iterator;
+                } else {
+                    rowCounter = iterator;
+                }
+            } else break;
+        }
+        setSb(sb);
+        return iterator;
+    }
+
+    private boolean postfixFunctionBoolean(String expression) {
+        List<String> stack = new LinkedList<String>();
+        if (expression.length() < 2) {
+            return true;
+        }
+        if (expression.length() == 2) {
+            return false;
+        }
+        for (int i = 0; i < expression.length(); i++) {
+            if (isNumber(expression.substring(i, i + 1))) {
+                stack.add(expression.substring(i, i + 1));
+            } else if (isOperator(expression.substring(i, i + 1))) {
+                if (stack.size() == 0) {
+                    return false;
+                }
+                int cacheOne = Integer.parseInt(stack.get(0));
+                stack.remove(0);
+                if (stack.size() == 0) {
+                    return false;
+                }
+                int cacheTwo = Integer.parseInt(stack.get(0));
+                stack.remove(0);
+                int result = calculate(cacheTwo, cacheOne, expression.substring(i, i + 1));
+                stack.add(Integer.toString(result));
+            }
+        }
+        return stack.size() == 1;
+    }
+
+    public void endGame() {
+        allWordsEachTurn();
+        int scoreOne = calculateScore(1);
+        int scoreTwo = calculateScore(2);
+        scoreOut(1);
+        scoreOut(2);
+        if (scoreOne < scoreTwo) {
+            System.out.println("P2 wins");
+        } else if (scoreTwo < scoreOne) {
+            System.out.println("P1 wins");
+        } else {
+            System.out.println("draw");
+        }
+    }
+}
